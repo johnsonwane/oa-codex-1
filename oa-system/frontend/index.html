@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>培训OA系统</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; }
+    .nav { padding: 12px 20px; background: #1f2937; color: #fff; }
+    .container { max-width: 1080px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .item { background: #eef2ff; border-radius: 8px; padding: 12px; }
+    button { background: #2563eb; color: #fff; border: 0; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+    input, select, textarea { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #e5e7eb; text-align: left; padding: 8px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="nav">培训项目协作 OA 系统（HBuilderX 前端）</div>
+  <div class="container">
+    <div class="card" id="loginCard">
+      <h3>登录</h3>
+      <input id="username" placeholder="用户名（例如 consult_hg）" />
+      <input id="password" placeholder="密码（示例可填任意值）" type="password" />
+      <button onclick="login()">登录</button>
+      <p id="loginMsg"></p>
+    </div>
+
+    <div class="card" id="dashboardCard" style="display:none;">
+      <h3>仪表盘</h3>
+      <div class="grid" id="summary"></div>
+    </div>
+
+    <div class="card" id="studentCard" style="display:none;">
+      <h3>学员管理</h3>
+      <button onclick="loadStudents()">刷新学员列表</button>
+      <table>
+        <thead><tr><th>ID</th><th>姓名</th><th>电话</th><th>状态</th><th>累计消费</th></tr></thead>
+        <tbody id="students"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const API_BASE = location.origin + '/api';
+let token = localStorage.getItem('oa_token') || '';
+
+async function request(path, options = {}) {
+  options.headers = options.headers || {};
+  options.headers['Content-Type'] = 'application/json';
+  if (token) options.headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(API_BASE + path, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || '请求失败');
+  return data;
+}
+
+async function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  try {
+    const data = await request('/login', { method:'POST', body: JSON.stringify({ username, password }) });
+    token = data.token;
+    localStorage.setItem('oa_token', token);
+    document.getElementById('loginMsg').innerText = '登录成功：' + data.user.real_name;
+    document.getElementById('dashboardCard').style.display = 'block';
+    document.getElementById('studentCard').style.display = 'block';
+    loadSummary();
+    loadStudents();
+  } catch (e) {
+    document.getElementById('loginMsg').innerText = e.message;
+  }
+}
+
+async function loadSummary() {
+  const data = await request('/dashboard/summary');
+  const map = {
+    学员数: data.counts.student,
+    订单数: data.counts.order,
+    收入总额: data.finance.total_income,
+    支出总额: data.finance.total_expense,
+    现金流: data.finance.cash_flow,
+    内容发布: data.counts.content_publish
+  };
+  document.getElementById('summary').innerHTML = Object.entries(map)
+    .map(([k,v]) => `<div class="item"><div>${k}</div><strong>${v}</strong></div>`)
+    .join('');
+}
+
+async function loadStudents() {
+  const rows = await request('/resource/students');
+  document.getElementById('students').innerHTML = rows.map(r =>
+    `<tr><td>${r.id}</td><td>${r.name || ''}</td><td>${r.phone || ''}</td><td>${r.status || ''}</td><td>${r.total_purchase || 0}</td></tr>`
+  ).join('');
+}
+
+if (token) {
+  document.getElementById('dashboardCard').style.display = 'block';
+  document.getElementById('studentCard').style.display = 'block';
+  loadSummary().catch(()=>{});
+  loadStudents().catch(()=>{});
+}
+</script>
+</body>
+</html>
