@@ -1,11 +1,11 @@
 <?php
 return [
     'db' => [
-        'host' => getenv('DB_HOST') ?: '127.0.0.1',
+        'host' => getenv('DB_HOST') ?: '10.0.0.7',
         'port' => getenv('DB_PORT') ?: '3306',
-        'dbname' => getenv('DB_NAME') ?: 'training_collab',
+        'dbname' => getenv('DB_NAME') ?: 'oa_codexx',
         'user' => getenv('DB_USER') ?: 'root',
-        'pass' => getenv('DB_PASS') ?: '',
+        'pass' => getenv('DB_PASS') ?: '?(kFMNWb)5Fv+8-_uYwG',
         'charset' => 'utf8mb4',
     ],
     'app' => [
