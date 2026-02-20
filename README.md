@@ -148,6 +148,8 @@ mysql -u root -p < oa-system/backend/sql/schema_ext.sql
 
 并启用 `mod_rewrite`。
 
+生产 API 基础地址：`https://oac.hahahaxinli.com/api`。
+
 ---
 
 ## 6. 快速验证账号
