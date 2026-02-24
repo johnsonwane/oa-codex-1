@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>培训OA系统</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #111827; }
+    .nav { padding: 12px 20px; background: #1f2937; color: #fff; display:flex; justify-content:space-between; }
+    .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
+    .card { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .grid4 { display:grid; grid-template-columns: repeat(4,1fr); gap:12px; }
+    .item { background: #eef2ff; border-radius: 8px; padding: 12px; }
+    .bar { height: 10px; background: #dbeafe; border-radius: 6px; overflow: hidden; }
+    .bar > span { display:block; height:100%; background: #2563eb; }
+    button { background: #2563eb; color: #fff; border: 0; padding: 8px 14px; border-radius: 6px; cursor: pointer; margin-right:8px; }
+    input, select, textarea { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; border:1px solid #d1d5db; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #e5e7eb; text-align: left; padding: 8px; font-size: 14px; }
+    .hidden { display:none; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <div>培训项目协作 OA 系统（Web 管理台）</div>
+    <div id="whoami"></div>
+  </div>
+
+  <div class="container">
+    <div class="card" id="loginCard">
+      <h3>登录</h3>
+      <input id="username" placeholder="用户名（boss_hg / consult_hg / delivery_hg）" />
+      <input id="password" placeholder="密码（示例账号可任意）" type="password" />
+      <button onclick="login()">登录</button>
+      <p id="loginMsg"></p>
+    </div>
+
+    <div id="mainArea" class="hidden">
+      <div class="card">
+        <h3>总览看板</h3>
+        <div class="grid" id="summary"></div>
+      </div>
+
+      <div class="row">
+        <div class="card">
+          <h3>顾问看板</h3>
+          <div id="consultantStats"></div>
+          <button onclick="loadConsultantDashboard()">刷新顾问看板</button>
+        </div>
+        <div class="card">
+          <h3>交付看板</h3>
+          <div id="deliveryStats"></div>
+          <button onclick="loadDeliveryDashboard()">刷新交付看板</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="card">
+          <h3>流程审批（财务）</h3>
+          <button onclick="loadApprovals()">加载待审批</button>
+          <div id="approvals"></div>
+        </div>
+
+        <div class="card">
+          <h3>文件上传</h3>
+          <input type="file" id="uploadFile" />
+          <button onclick="uploadFile()">上传</button>
+          <div id="uploadMsg"></div>
+
+          <h4>我的通知</h4>
+          <button onclick="loadNotifications()">刷新通知</button>
+          <div id="notifications"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>学员管理</h3>
+        <button onclick="loadStudents()">刷新学员列表</button>
+        <table>
+          <thead><tr><th>ID</th><th>姓名</th><th>电话</th><th>状态</th><th>累计消费</th></tr></thead>
+          <tbody id="students"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+const API_BASE = 'https://oac.hahahaxinli.com/api';
+let token = localStorage.getItem('oa_token') || '';
+let currentUser = null;
+
+async function request(path, options = {}) {
+  options.headers = options.headers || {};
+  if (!(options.body instanceof FormData)) {
+    options.headers['Content-Type'] = 'application/json';
+  }
+  if (token) options.headers['Authorization'] = 'Bearer ' + token;
+
+  let res = await fetch(API_BASE + path, options);
+  let data = await res.json().catch(() => ({}));
+
+  // 兼容网关差异：若 /api 前缀返回404，自动回退到根路径重试一次
+  if (res.status === 404 && API_BASE.endsWith('/api')) {
+    const fallbackBase = API_BASE.replace(/\/api$/, '');
+    res = await fetch(fallbackBase + path, options);
+    data = await res.json().catch(() => ({}));
+  }
+
+  if (!res.ok) throw new Error(data.message || '请求失败');
+  return data;
+}
+
+function renderTrendBars(rows, valueKey) {
+  if (!rows || !rows.length) return '<div>暂无数据</div>';
+  const max = Math.max(...rows.map(x => Number(x[valueKey] || 0)), 1);
+  return rows.map(r => {
+    const val = Number(r[valueKey] || 0);
+    const percent = Math.round((val / max) * 100);
+    return `<div style="margin:8px 0;"><div>${r.d}: ${val}</div><div class="bar"><span style="width:${percent}%"></span></div></div>`;
+  }).join('');
+}
+
+async function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  try {
+    const data = await request('/login', { method:'POST', body: JSON.stringify({ username, password }) });
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('oa_token', token);
+
+    document.getElementById('whoami').innerText = `${data.user.real_name}（部门ID:${data.user.department_id}）`;
+    document.getElementById('loginCard').classList.add('hidden');
+    document.getElementById('mainArea').classList.remove('hidden');
+    document.getElementById('loginMsg').innerText = '登录成功';
+
+    await Promise.all([
+      loadSummary(),
+      loadStudents(),
+      loadConsultantDashboard().catch(()=>{}),
+      loadDeliveryDashboard().catch(()=>{}),
+      loadNotifications().catch(()=>{})
+    ]);
+  } catch (e) {
+    document.getElementById('loginMsg').innerText = e.message;
+  }
+}
+
+async function loadSummary() {
+  const data = await request('/dashboard/summary');
+  const map = {
+    学员数: data.counts.student,
+    订单数: data.counts.order,
+    收入总额: data.finance.total_income,
+    支出总额: data.finance.total_expense,
+    现金流: data.finance.cash_flow,
+    内容发布: data.counts.content_publish
+  };
+  document.getElementById('summary').innerHTML = Object.entries(map)
+    .map(([k,v]) => `<div class="item"><div>${k}</div><strong>${v}</strong></div>`)
+    .join('');
+}
+
+async function loadConsultantDashboard() {
+  const data = await request('/dashboard/consultant');
+  document.getElementById('consultantStats').innerHTML = `
+    <div class="grid4">
+      <div class="item">学员总数<br><strong>${data.total_students ?? '-'}</strong></div>
+      <div class="item">30天跟进次数<br><strong>${data.followups_30d ?? '-'}</strong></div>
+      <div class="item">顾问销售额<br><strong>${data.consultant_sales_amount ?? '-'}</strong></div>
+      <div class="item">近7天趋势</div>
+    </div>
+    ${renderTrendBars(data.student_trend_7d, 'c')}
+  `;
+}
+
+async function loadDeliveryDashboard() {
+  const data = await request('/dashboard/delivery');
+  document.getElementById('deliveryStats').innerHTML = `
+    <div class="grid4">
+      <div class="item">有效学员课程<br><strong>${data.active_student_courses ?? '-'}</strong></div>
+      <div class="item">平均交付进度<br><strong>${data.avg_progress_percent ?? '-'}%</strong></div>
+      <div class="item">交付销售额<br><strong>${data.delivery_sales_amount ?? '-'}</strong></div>
+      <div class="item">近7天进度趋势</div>
+    </div>
+    ${renderTrendBars(data.progress_trend_7d, 'p')}
+  `;
+}
+
+async function loadApprovals() {
+  try {
+    const data = await request('/approvals/pending');
+    const render = (title, rows, type) => `
+      <h4>${title}</h4>
+      ${(rows || []).map(r => `<div style="margin:6px 0;padding:8px;border:1px solid #e5e7eb;border-radius:6px;">#${r.id} ${r.no_code || ''} ${r.title || ''}
+        <button onclick="approve('${type}', ${r.id}, 'approve')">通过</button>
+        <button onclick="approve('${type}', ${r.id}, 'reject')">驳回</button>
+      </div>`).join('') || '<div>暂无</div>'}
+    `;
+    document.getElementById('approvals').innerHTML =
+      render('采购待审批', data.purchase_pending, 'purchase') +
+      render('费用待审批', data.expense_pending, 'expense') +
+      render('发票待验真', data.invoice_pending, 'invoice');
+  } catch (e) {
+    document.getElementById('approvals').innerText = e.message;
+  }
+}
+
+async function approve(type, id, action) {
+  await request(`/approvals/${type}/${id}`, { method:'POST', body: JSON.stringify({ action }) });
+  await loadApprovals();
+  await loadNotifications();
+}
+
+async function loadStudents() {
+  const rows = await request('/resource/students');
+  document.getElementById('students').innerHTML = rows.map(r =>
+    `<tr><td>${r.id}</td><td>${r.name || ''}</td><td>${r.phone || ''}</td><td>${r.status || ''}</td><td>${r.total_purchase || 0}</td></tr>`
+  ).join('');
+}
+
+async function uploadFile() {
+  const input = document.getElementById('uploadFile');
+  if (!input.files.length) {
+    document.getElementById('uploadMsg').innerText = '请选择文件';
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', input.files[0]);
+
+  try {
+    const data = await request('/upload', { method:'POST', body: fd, headers: {} });
+    document.getElementById('uploadMsg').innerText = `上传成功：${data.filename}`;
+  } catch (e) {
+    document.getElementById('uploadMsg').innerText = e.message;
+  }
+}
+
+async function loadNotifications() {
+  const rows = await request('/notifications/my');
+  document.getElementById('notifications').innerHTML = (rows || []).map(n =>
+    `<div style="padding:8px;border:1px solid #e5e7eb;border-radius:6px;margin:6px 0;">
+      <div><strong>${n.title}</strong> [${n.notice_type}] ${n.is_read ? '✅' : '🟡'}</div>
+      <div>${n.content || ''}</div>
+      <div>${n.created_at || ''}</div>
+      ${n.is_read ? '' : `<button onclick="markRead(${n.id})">标记已读</button>`}
+    </div>`
+  ).join('') || '暂无通知';
+}
+
+async function markRead(id) {
+  await request(`/notifications/read/${id}`, { method: 'POST', body: JSON.stringify({}) });
+  await loadNotifications();
+}
+
+(async function init() {
+  if (!token) return;
+  try {
+    currentUser = await request('/me');
+    document.getElementById('whoami').innerText = `${currentUser.username}（部门ID:${currentUser.department_id}）`;
+    document.getElementById('loginCard').classList.add('hidden');
+    document.getElementById('mainArea').classList.remove('hidden');
+    await Promise.all([loadSummary(), loadStudents(), loadNotifications().catch(()=>{})]);
+  } catch {
+    localStorage.removeItem('oa_token');
+    token = '';
+  }
+})();
+</script>
+</body>
+</html>
