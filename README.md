@@ -139,18 +139,32 @@ mysql -u root -p < oa-system/backend/sql/schema_ext.sql
 
 ---
 
-## 5. Apache 部署
+## 5. Apache 部署（按你当前线上目录）
 
 参考：`oa-system/docs/apache-vhost.conf`
 
-- API：`http://oa.local/api/...`
-- 前端：`http://oa.local/app/index.html`
+当前约定：
 
-并启用 `mod_rewrite`。
+- 前端域名根目录：`https://oac.hahahaxinli.com`
+- 前端 FTP 目录：`/opt/webapps/oac.hahahaxinli.com/frontend`
+- 后端 API 前缀：`https://oac.hahahaxinli.com/api`
+- 后端 FTP 目录：`/opt/webapps/oac.hahahaxinli.com/backend`
+- 仅监听 443（HTTPS）
 
-生产 API 基础地址：`https://oac.hahahaxinli.com/api`。
+证书配置：
 
-说明：`/api/login`、`/api/dashboard/*` 是**路由路径**，由 `backend/public/index.php` 统一分发，不需要物理 `login` 文件夹。为兼容部分未开启 rewrite 的环境，已新增物理目录 `backend/public/api/index.php` 作为兜底入口。
+```apache
+SSLEngine on
+SSLCertificateFile /opt/cert/oac.hahahaxinli.com.crt
+SSLCertificateKeyFile /opt/cert/oac.hahahaxinli.com.key
+SSLCertificateChainFile /opt/cert/root_bundle.crt
+```
+
+说明：
+
+- 前端访问静态页面：`/` 下直接打开 `index.html`。
+- 后端接口统一从 `/api/*` 进入（例如 `/api/login`）。
+- 这里的 `/api/login` 是 API 路径，不是物理 `login` 文件夹。
 
 ---
 

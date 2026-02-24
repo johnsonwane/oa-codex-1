@@ -98,15 +98,8 @@ async function request(path, options = {}) {
   }
   if (token) options.headers['Authorization'] = 'Bearer ' + token;
 
-  let res = await fetch(API_BASE + path, options);
-  let data = await res.json().catch(() => ({}));
-
-  // 兼容网关差异：若 /api 前缀返回404，自动回退到根路径重试一次
-  if (res.status === 404 && API_BASE.endsWith('/api')) {
-    const fallbackBase = API_BASE.replace(/\/api$/, '');
-    res = await fetch(fallbackBase + path, options);
-    data = await res.json().catch(() => ({}));
-  }
+  const res = await fetch(API_BASE + path, options);
+  const data = await res.json().catch(() => ({}));
 
   if (!res.ok) throw new Error(data.message || '请求失败');
   return data;

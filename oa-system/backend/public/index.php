@@ -21,17 +21,6 @@ $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = preg_replace('#^/+#', '/', $path);
 
-// 兼容两种部署方式：
-// 1) 直接暴露 /api/*
-// 2) 反向代理后入口已在 /api 下，仅透传 /login 这类路径
-if (strpos($path, '/api/') !== 0) {
-    if ($path === '/') {
-        $path = '/api';
-    } else {
-        $path = '/api' . $path;
-    }
-}
-
 function body(): array
 {
     $raw = file_get_contents('php://input');
