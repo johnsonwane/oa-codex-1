@@ -14,7 +14,7 @@
 export default {
   data() {
     return {
-      apiBase: 'https://oac.hahahaxinli.com/api',
+      apiBase: 'https://oac.hahahaxinli.com',
       username: 'consult_hg',
       password: '123456',
       msg: ''

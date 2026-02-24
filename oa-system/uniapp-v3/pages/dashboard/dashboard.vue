@@ -17,7 +17,7 @@
 export default {
   data() {
     return {
-      apiBase: 'https://oac.hahahaxinli.com/api',
+      apiBase: 'https://oac.hahahaxinli.com',
       summary: {},
       finance: {}
     }
