@@ -87,7 +87,7 @@
   </div>
 
 <script>
-const API_BASE = 'https://oac.hahahaxinli.com/api';
+const API_BASE = 'https://oac.hahahaxinli.com';
 let token = localStorage.getItem('oa_token') || '';
 let currentUser = null;
 
@@ -202,13 +202,13 @@ async function loadApprovals() {
 }
 
 async function approve(type, id, action) {
-  await request(`/approvals/${type}/${id}`, { method:'POST', body: JSON.stringify({ action }) });
+  await request(`/approvals/${type}?id=${id}`, { method:'POST', body: JSON.stringify({ action }) });
   await loadApprovals();
   await loadNotifications();
 }
 
 async function loadStudents() {
-  const rows = await request('/resource/students');
+  const rows = await request('/resource?name=students');
   document.getElementById('students').innerHTML = rows.map(r =>
     `<tr><td>${r.id}</td><td>${r.name || ''}</td><td>${r.phone || ''}</td><td>${r.status || ''}</td><td>${r.total_purchase || 0}</td></tr>`
   ).join('');
@@ -244,7 +244,7 @@ async function loadNotifications() {
 }
 
 async function markRead(id) {
-  await request(`/notifications/read/${id}`, { method: 'POST', body: JSON.stringify({}) });
+  await request(`/notifications/read?id=${id}`, { method: 'POST', body: JSON.stringify({}) });
   await loadNotifications();
 }
 

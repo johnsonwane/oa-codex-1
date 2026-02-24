@@ -31,16 +31,16 @@
 
 接口：
 
-- `GET /api/permissions/check?module_code=...&page_code=...&action=...`
+- `GET /permissions/check?module_code=...&page_code=...&action=...`
 
 ### 1.2 流程审批（采购/费用/发票）
 
 新增审批 API：
 
-- `GET /api/approvals/pending`
-- `POST /api/approvals/purchase/{id}`
-- `POST /api/approvals/expense/{id}`
-- `POST /api/approvals/invoice/{id}`
+- `GET /approvals/pending`
+- `POST /approvals/purchase?id={id}`
+- `POST /approvals/expense?id={id}`
+- `POST /approvals/invoice?id={id}`
 
 请求体示例：
 
@@ -58,18 +58,18 @@
 
 新增：
 
-- `GET /api/dashboard/consultant`
-- `GET /api/dashboard/delivery`
+- `GET /dashboard/consultant`
+- `GET /dashboard/delivery`
 
 前端已显示趋势条形图（7日趋势）和关键统计卡片。
 
 ### 1.4 文件上传、操作日志、消息通知
 
-- 文件上传：`POST /api/upload`（`multipart/form-data`，字段名 `file`）
-- 操作日志：`GET /api/logs/operation`
+- 文件上传：`POST /upload`（`multipart/form-data`，字段名 `file`）
+- 操作日志：`GET /logs/operation`
 - 消息通知：
-  - `GET /api/notifications/my`
-  - `POST /api/notifications/read/{id}`
+  - `GET /notifications/my`
+  - `POST /notifications/read?id={id}`
 
 > 为支持日志与通知，请执行扩展 SQL：`oa-system/backend/sql/schema_ext.sql`
 
@@ -147,7 +147,7 @@ mysql -u root -p < oa-system/backend/sql/schema_ext.sql
 
 - 前端域名根目录：`https://oac.hahahaxinli.com`
 - 前端 FTP 目录：`/opt/webapps/oac.hahahaxinli.com/frontend`
-- 后端 API 前缀：`https://oac.hahahaxinli.com/api`
+- 后端接口入口：`https://oac.hahahaxinli.com`（不再使用 `/api` 路径）
 - 后端 FTP 目录：`/opt/webapps/oac.hahahaxinli.com/backend`
 - 仅监听 443（HTTPS）
 
@@ -163,8 +163,8 @@ SSLCertificateChainFile /opt/cert/root_bundle.crt
 说明：
 
 - 前端访问静态页面：`/` 下直接打开 `index.html`。
-- 后端接口统一从 `/api/*` 进入（例如 `/api/login`）。
-- 这里的 `/api/login` 是 API 路径，不是物理 `login` 文件夹。
+- 后端接口统一走物理目录入口（例如 `/login`、`/dashboard/summary`、`/approvals/pending`）。
+- 已取消 `/api` 路由前缀，改为多个物理文件夹入口。
 
 ---
 

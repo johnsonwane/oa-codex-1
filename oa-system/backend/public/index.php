@@ -236,7 +236,7 @@ function sendNotification(PDO $pdo, int $receiverId, ?int $companyId, string $ti
     }
 }
 
-if ($path === '/api/login' && $method === 'POST') {
+if ($path === '/login' && $method === 'POST') {
     $data = body();
     $stmt = $pdo->prepare('SELECT id, username, password, real_name, company_id, department_id, level_id FROM `user` WHERE username = ? AND status = 1 LIMIT 1');
     $stmt->execute([$data['username'] ?? '']);
@@ -268,12 +268,12 @@ if ($path === '/api/login' && $method === 'POST') {
     ]);
 }
 
-if ($path === '/api/me' && $method === 'GET') {
+if ($path === '/me' && $method === 'GET') {
     $user = authUser($config);
     Response::json($user);
 }
 
-if ($path === '/api/permissions/check' && $method === 'GET') {
+if ($path === '/permissions/check' && $method === 'GET') {
     $user = authUser($config);
     $moduleCode = queryParam('module_code', 'system');
     $pageCode = queryParam('page_code', 'index');
@@ -282,7 +282,7 @@ if ($path === '/api/permissions/check' && $method === 'GET') {
     Response::json(['permission' => $perm, 'allowed_action' => $action]);
 }
 
-if ($path === '/api/dashboard/summary' && $method === 'GET') {
+if ($path === '/dashboard/summary' && $method === 'GET') {
     $user = authUser($config);
     $summary = [];
     $summaryTables = [
@@ -332,7 +332,7 @@ if ($path === '/api/dashboard/summary' && $method === 'GET') {
     ]);
 }
 
-if ($path === '/api/dashboard/consultant' && $method === 'GET') {
+if ($path === '/dashboard/consultant' && $method === 'GET') {
     $user = authUser($config);
     enforcePermission($pdo, $user, 'consultant', 'student', 'view');
 
@@ -358,7 +358,7 @@ if ($path === '/api/dashboard/consultant' && $method === 'GET') {
     Response::json($stats);
 }
 
-if ($path === '/api/dashboard/delivery' && $method === 'GET') {
+if ($path === '/dashboard/delivery' && $method === 'GET') {
     $user = authUser($config);
     enforcePermission($pdo, $user, 'delivery', 'delivery_progress', 'view');
 
@@ -384,7 +384,7 @@ if ($path === '/api/dashboard/delivery' && $method === 'GET') {
     Response::json($stats);
 }
 
-if ($path === '/api/approvals/pending' && $method === 'GET') {
+if ($path === '/approvals/pending' && $method === 'GET') {
     $user = authUser($config);
     enforcePermission($pdo, $user, 'finance', 'income_expense', 'approve');
 
@@ -406,7 +406,7 @@ if ($path === '/api/approvals/pending' && $method === 'GET') {
     ]);
 }
 
-if (preg_match('#^/api/approvals/(purchase|expense|invoice)/(\d+)$#', $path, $m) && $method === 'POST') {
+if (preg_match('#^/approvals/(purchase|expense|invoice)/(\d+)$#', $path, $m) && $method === 'POST') {
     $user = authUser($config);
     enforcePermission($pdo, $user, 'finance', 'income_expense', 'approve');
 
@@ -439,14 +439,14 @@ if (preg_match('#^/api/approvals/(purchase|expense|invoice)/(\d+)$#', $path, $m)
     Response::json(['message' => '审批结果已提交']);
 }
 
-if ($path === '/api/notifications/my' && $method === 'GET') {
+if ($path === '/notifications/my' && $method === 'GET') {
     $user = authUser($config);
     $stmt = $pdo->prepare('SELECT * FROM notification WHERE receiver_id = ? ORDER BY id DESC LIMIT 100');
     $stmt->execute([(int)$user['uid']]);
     Response::json($stmt->fetchAll());
 }
 
-if (preg_match('#^/api/notifications/read/(\d+)$#', $path, $m) && $method === 'POST') {
+if (preg_match('#^/notifications/read/(\d+)$#', $path, $m) && $method === 'POST') {
     $user = authUser($config);
     $id = (int)$m[1];
     $stmt = $pdo->prepare('UPDATE notification SET is_read = 1, read_at = NOW() WHERE id = ? AND receiver_id = ?');
@@ -454,7 +454,7 @@ if (preg_match('#^/api/notifications/read/(\d+)$#', $path, $m) && $method === 'P
     Response::json(['message' => '已标记已读']);
 }
 
-if ($path === '/api/upload' && $method === 'POST') {
+if ($path === '/upload' && $method === 'POST') {
     $user = authUser($config);
     if (empty($_FILES['file'])) {
         Response::json(['message' => '未检测到文件'], 422);
@@ -483,7 +483,7 @@ if ($path === '/api/upload' && $method === 'POST') {
     ]);
 }
 
-if ($path === '/api/logs/operation' && $method === 'GET') {
+if ($path === '/logs/operation' && $method === 'GET') {
     $user = authUser($config);
     enforcePermission($pdo, $user, 'system', 'operation_log', 'view');
 
@@ -500,7 +500,7 @@ if ($path === '/api/logs/operation' && $method === 'GET') {
     Response::json($stmt->fetchAll());
 }
 
-if (preg_match('#^/api/resource/([a-z\-]+)(?:/(\d+))?$#', $path, $m)) {
+if (preg_match('#^/resource/([a-z\-]+)(?:/(\d+))?$#', $path, $m)) {
     $user = authUser($config);
     $resource = $m[1];
     $id = isset($m[2]) ? (int)$m[2] : null;
